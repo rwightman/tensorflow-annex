@@ -8,9 +8,14 @@ import threading
 from datetime import datetime
 import tensorflow as tf
 import numpy as np
+import matplotlib
+matplotlib.use("Qt5Agg")
+import matplotlib.pyplot as plt
+import skimage.io as io
 
 from process import image
 
+from external import coco
 
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
@@ -42,6 +47,17 @@ def main(unused):
     p.clip(point_min=(5, 5), point_max=(90, 90))
     print(p)
 
+    cocod = coco.CocoData(annotation_file='/archive2/data/mscoco/annotations/instances_train2014.json')
+    ann_ids = cocod.get_ann_ids(cat_ids=[1])
+    anns = cocod.load_anns(ann_ids)
+    print(anns[0])
+
+    I = io.imread('http://mscoco.org/images/%d' % (anns[0]['image_id']))
+    plt.figure()
+    plt.axis('off')
+    plt.imshow(I)
+    cocod.show_anns([anns[0]])
+    plt.show()
 
     channels = 3
     colorspace = b'RGB'
