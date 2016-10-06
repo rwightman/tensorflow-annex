@@ -111,11 +111,11 @@ class CocoEval:
 
         p = self.params
         if p.use_cats:
-            gts = self.coco_gt.load_anns(self.coco_gt.get_ann_ids(image_ids=p.image_ids, cat_ids=p.cat_ids))
-            dts = self.coco_dt.load_anns(self.coco_dt.get_ann_ids(image_ids=p.image_ids, cat_ids=p.cat_ids))
+            gts = self.coco_gt.get_anns_by_id(self.coco_gt.get_ann_ids(image_ids=p.image_ids, cat_ids=p.cat_ids))
+            dts = self.coco_dt.get_anns_by_id(self.coco_dt.get_ann_ids(image_ids=p.image_ids, cat_ids=p.cat_ids))
         else:
-            gts = self.coco_gt.load_anns(self.coco_gt.get_ann_ids(image_ids=p.image_ids))
-            dts = self.coco_dt.load_anns(self.coco_dt.get_ann_ids(image_ids=p.image_ids))
+            gts = self.coco_gt.get_anns_by_id(self.coco_gt.get_ann_ids(image_ids=p.image_ids))
+            dts = self.coco_dt.get_anns_by_id(self.coco_dt.get_ann_ids(image_ids=p.image_ids))
 
         # convert ground truth to mask if iou_type == "segm"
         if p.iou_type == "segm":

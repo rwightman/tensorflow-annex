@@ -1,27 +1,25 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from abc import abstractmethod
+from os import path
+import tensorflow as tf
 
-
-
+FLAGS = tf.app.flags.FLAGS
 
 class Dataset(object):
 
-    def __init__(self):
+    def __init__(self, name, data_dir=''):
 
-        if True:
-            self._data_files = {'train': [], 'validation': []}
-        else:
-            self._data_files = {'test': []}
+        self.name = name
 
-        self._items = {}
-        self._objects = {}
+        assert path.isdir(data_dir)
+        self._data_dir = data_dir
 
+        self._records = {}
+
+        self._initialize_metadata()
+
+    @abstractmethod
+    def _initialize_metadata(self):
         pass
 
-    def map_objects(self):
-        pass
-
-
-    def map_items(self):
-        pass
+    def process(self):
+        self._processor.process()

@@ -8,102 +8,59 @@ import threading
 from datetime import datetime
 import tensorflow as tf
 import numpy as np
+import pandas as pd
 import matplotlib
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import skimage.io as io
+import time
+import timeit
+import functools
+import numbers
 
-from process import image
-
+from process import process_image
 from external import coco
+from record import Polygon2D, ClassLabel, BoundingBox
+from record.example import *
+import dataset
+from dataset import DatasetCoco
 
-def _int64_feature(value):
-    """Wrapper for inserting int64 features into Example proto."""
-    if not isinstance(value, list):
-        value = [value]
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
+class Timer:
+    def __init__(self, str=""):
+        if str:
+            print(str)
 
+    def __enter__(self):
+        self.start = time.time()
+        return self
 
-def _float_feature(value):
-    """Wrapper for inserting float features into Example proto."""
-    if not isinstance(value, list):
-        value = [value]
-    return tf.train.Feature(float_list=tf.train.FloatList(value=value))
-
-
-def _bytes_feature(value):
-    """Wrapper for inserting bytes features into Example proto."""
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
-
-def _bytes_feature_list(value):
-    """Wrapper for inserting bytes features into Example proto."""
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
+    def __exit__(self, *args):
+        self.end = time.time()
+        self.interval = self.end - self.start
+        print('Request took %.03f sec.' % self.interval)
 
 
 def main(unused):
 
-    p = image.Polygon([(0,0), (100, 0), (100, 100), (0, 100)])
-    p.clip(point_min=(5, 5), point_max=(90, 90))
-    print(p)
+    bb = BoundingBox(1.0, 1.0, 300, 200)
+    print(bb.is_integral())
+    bbi = bb.as_integers()
 
-    cocod = coco.CocoData(annotation_file='/archive2/data/mscoco/annotations/instances_train2014.json')
-    ann_ids = cocod.get_ann_ids(cat_ids=[1])
-    anns = cocod.load_anns(ann_ids)
-    print(anns[0])
+    dc = DatasetCoco(
+        data_dir='/data/x/mscoco/train2014',
+        annotation_file='/data/x/mscoco/annotations/instances_train2014.json')
 
-    I = io.imread('http://mscoco.org/images/%d' % (anns[0]['image_id']))
-    plt.figure()
-    plt.axis('off')
-    plt.imshow(I)
-    cocod.show_anns([anns[0]])
-    plt.show()
+    print("Num records: ", dc.num_records())
+    with Timer("Gen records"):
+        all_recs2 = [x for x in dc.generate_records(include_objects=True)]
+        print("Num generated: ", len(all_recs2))
 
-    channels = 3
-    colorspace = b'RGB'
+    serialized = []
+    with Timer("Convert records"):
+        for x in dc.generate_records(include_objects=True):
+            ex = x.to_example()
+            serialized.append(ex)
 
-    image_features = tf.train.Features(feature={
-        'image/height': _int64_feature(640),
-        'image/width': _int64_feature(480),
-        'image/channels': _int64_feature(channels),
-        'image/colorspace': _bytes_feature(colorspace),
-
-    })
-
-    image_features.feature['masks'].bytes_list.value.append(b'crumpet')
-
-    image_features.feature['captions'].bytes_list.value.extend([b'crow', b'cow'])
-
-    objects_feature_list = [image_features]
-    image_caption_list = []
-
-    #dlorp = tf.train.FeatureList()
-    florp = tf.train.FeatureList()
-
-    fuckshit = tf.train.Features(feature={'test': _int64_feature(2)})
-
-    dlorp = tf.train.FeatureList(feature=[])
-
-    fl = florp.feature.add()
-    fl.bytes_list.value.append(b'woop woop')
-    fl = florp.feature.add()
-    fl.bytes_list.value.append(b'thank you')
-
-    image_feature_lists = tf.train.FeatureLists(
-        feature_list={
-            'objects': florp,
-            'captions': dlorp
-        }
-    )
-
-    example = tf.train.SequenceExample(
-        context=image_features,
-        feature_lists=image_feature_lists)
-
-    example.feature_lists.feature_list['text'].feature.extend([_int64_feature([1,2,3,4])])
-    example.feature_lists.feature_list['text'].feature.extend([_int64_feature([5,6,7,8])])
-
-    print(example)
 
 
 if __name__ == '__main__':

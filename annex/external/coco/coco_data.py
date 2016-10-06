@@ -22,9 +22,9 @@
 #  get_ann_ids  - Get ann ids that satisfy given filter conditions.
 #  get_cat_ids  - Get cat ids that satisfy given filter conditions.
 #  get_image_ids  - Get img ids that satisfy given filter conditions.
-#  load_anns   - Load anns with the specified ids.
-#  load_cats   - Load cats with the specified ids.
-#  load_images   - Load images with the specified ids.
+#  get_anns_by_id   - Load anns with the specified ids.
+#  get_cats_by_id   - Load cats with the specified ids.
+#  get_images_by_id   - Load images with the specified ids.
 #  segToMask  - Convert polygon segmentation to binary mask.
 #  show_anns   - Display the specified annotations.
 #  load_results    - Load algorithm results and create API for accessing them.
@@ -34,8 +34,8 @@
 
 # See also COCO>decodeMask,
 # COCO>encodeMask, COCO>get_ann_ids, COCO>get_cat_ids,
-# COCO>get_image_ids, COCO>load_anns, COCO>load_cats,
-# COCO>load_images, COCO>segToMask, COCO>show_anns
+# COCO>get_image_ids, COCO>get_anns_by_id, COCO>get_cats_by_id,
+# COCO>get_images_by_id, COCO>segToMask, COCO>show_anns
 
 # Microsoft COCO Toolbox.      version 2.0
 # Data, paper, and tutorials available at:  http://mscoco.org/
@@ -63,8 +63,8 @@ class CocoData:
     def __init__(self, annotation_file=None):
         """
         Constructor of Microsoft COCO helper class for reading and visualizing annotations.
-        :param: annotation_file (str): location of annotation file
-        :param: image_folder (str): location to the folder that hosts images.
+        :param str annotation_file: location of annotation file
+        :param str image_folder: location to the folder that hosts images.
         :return:
         """
         # load dataset
@@ -86,34 +86,22 @@ class CocoData:
     def create_index(self):
         # create index
         print('creating index...')
-        anns = dict()
-        cats = dict()
-        imgs = dict()
-        image_to_anns = defaultdict(list)
-        cat_to_images = defaultdict(list)
         if 'annotations' in self.dataset:
             for ann in self.dataset['annotations']:
-                image_to_anns[ann['image_id']].append(ann)
-                anns[ann['id']] = ann
+                self.image_to_anns[ann['image_id']].append(ann)
+                self.anns[ann['id']] = ann
 
         if 'images' in self.dataset:
-            for img in self.dataset['images']:
-                imgs[img['id']] = img
+            for image in self.dataset['images']:
+                self.images[image['id']] = image
 
         if 'categories' in self.dataset:
             for cat in self.dataset['categories']:
-                cats[cat['id']] = cat
-            for ann in self.dataset['annotations']:
-                cat_to_images[ann['category_id']].append(ann['image_id'])
+                self.cats[cat['id']] = cat
+            for ann in self.anns.values():
+                self.cat_to_images[ann['category_id']].append(ann['image_id'])
 
         print('index created!')
-
-        # create class members
-        self.anns = anns
-        self.image_to_anns = image_to_anns
-        self.cat_to_images = cat_to_images
-        self.images = imgs
-        self.cats = cats
 
     def info(self):
         """
@@ -135,17 +123,18 @@ class CocoData:
         image_ids = image_ids if type(image_ids) == list else [image_ids]
         cat_ids = cat_ids if type(cat_ids) == list else [cat_ids]
 
-        if len(image_ids) == len(cat_ids) == len(area_range) == 0:
-            anns = self.dataset['annotations']
+        if image_ids:
+            lists = [self.image_to_anns[image_id] for image_id in image_ids if image_id in self.image_to_anns]
+            anns = list(itertools.chain.from_iterable(lists))
         else:
-            if not len(image_ids) == 0:
-                lists = [self.image_to_anns[image_id] for image_id in image_ids if image_id in self.image_to_anns]
-                anns = list(itertools.chain.from_iterable(lists))
-            else:
-                anns = self.dataset['annotations']
-            anns = anns if len(cat_ids) == 0 else [ann for ann in anns if ann['category_id'] in cat_ids]
-            anns = anns if len(area_range) == 0 else [ann for ann in anns if
-                                                      ann['area'] > area_range[0] and ann['area'] < area_range[1]]
+            anns = self.anns.values()
+
+        if cat_ids:
+            anns = [ann for ann in anns if ann['category_id'] in cat_ids]
+
+        if area_range:
+            anns = [ann for ann in anns if ann['area'] > area_range[0] and ann['area'] < area_range[1]]
+
         if iscrowd is not None:
             ids = [ann['id'] for ann in anns if ann['iscrowd'] == iscrowd]
         else:
@@ -164,38 +153,42 @@ class CocoData:
         supcat_names = supcat_names if type(supcat_names) == list else [supcat_names]
         cat_ids = cat_ids if type(cat_ids) == list else [cat_ids]
 
-        if len(cat_names) == len(supcat_names) == len(cat_ids) == 0:
-            cats = self.dataset['categories']
+        cats = self.cats
+        if cat_names:
+            cats = {k: v for (k, v) in cats.items() if v['name'] in cat_names}
+        if supcat_names:
+            cats = {k: v for (k, v) in cats.items() if v['supercategory'] in supcat_names}
+        if cat_ids:
+            ids = [cat for cat in cats.keys() if cat in cat_ids]
         else:
-            cats = self.dataset['categories']
-            cats = cats if len(cat_names) == 0 else [cat for cat in cats if cat['name'] in cat_names]
-            cats = cats if len(supcat_names) == 0 else [cat for cat in cats if cat['supercategory'] in supcat_names]
-            cats = cats if len(cat_ids) == 0 else [cat for cat in cats if cat['id'] in cat_ids]
-        ids = [cat['id'] for cat in cats]
+            ids = [cat for cat in cats.keys()]
         return ids
 
-    def get_image_ids(self, image_ids=[], cat_ids=[]):
+    def get_image_ids(self, image_ids=[], cat_ids=[], cat_union=False):
         """
         Get img ids that satisfy given filter conditions.
         :param list[int] image_ids: get images for given ids
         :param list[int] cat_ids: get images with all given cats
         :return list[int] ids: integer array of img ids
         """
-        image_ids = image_ids if type(image_ids) == list else [image_ids]
+        image_ids = set(image_ids) if type(image_ids) == list else {image_ids}
         cat_ids = cat_ids if type(cat_ids) == list else [cat_ids]
 
-        if len(image_ids) == len(cat_ids) == 0:
-            ids = self.images.keys()
+        if not cat_ids:
+            if image_ids:
+                ids = image_ids & set(self.images.keys())
+            else:
+                ids = self.images.keys()
         else:
-            ids = set(image_ids)
-            for i, cat_id in enumerate(cat_ids):
-                if i == 0 and len(ids) == 0:
-                    ids = set(self.cat_to_images[cat_id])
-                else:
-                    ids &= set(self.cat_to_images[cat_id])
+            ids = set()
+            for cat_id in cat_ids:
+                update_ids = set(self.cat_to_images[cat_id])
+                if image_ids:
+                    update_ids &= image_ids
+                ids = ids | update_ids if cat_union else ids & update_ids
         return list(ids)
 
-    def load_anns(self, ids=[]):
+    def get_anns_by_id(self, ids=[]):
         """
         Load anns with the specified ids.
         :param: ids (int array)       : integer ids specifying anns
@@ -206,7 +199,18 @@ class CocoData:
         elif type(ids) == int:
             return [self.anns[ids]]
 
-    def load_cats(self, ids=[]):
+    def get_anns_dict_by_id(self, ids=[]):
+        """
+        Load anns with the specified ids.
+        :param: ids (int array)       : integer ids specifying anns
+        :return: anns (object array) : loaded ann objects
+        """
+        if type(ids) == list:
+            return {i: self.anns[i] for i in ids}
+        elif type(ids) == int:
+            return {ids: self.anns[ids]}
+
+    def get_cats_by_id(self, ids=[]):
         """
         Load cats with the specified ids.
         :param: ids (int array)       : integer ids specifying cats
@@ -217,7 +221,7 @@ class CocoData:
         elif type(ids) == int:
             return [self.cats[ids]]
 
-    def load_images(self, ids=[]):
+    def get_images_by_id(self, ids=[]):
         """
         Load anns with the specified ids.
         :param int[] ids: integer ids specifying img
@@ -227,6 +231,17 @@ class CocoData:
             return [self.images[i] for i in ids]
         elif type(ids) == int:
             return [self.images[ids]]
+
+    def get_images_dict_by_id(self, ids=[]):
+        """
+        Load anns with the specified ids.
+        :param int[] ids: integer ids specifying img
+        :return images: (object array) : loaded img objects
+        """
+        if type(ids) == list:
+            return {i: self.images[i] for i in ids}
+        elif type(ids) == int:
+            return {ids: self.images[ids]}
 
     def show_anns(self, anns):
         """
@@ -274,7 +289,7 @@ class CocoData:
                         ax.imshow(np.dstack((img, m * 0.5)))
                 if 'keypoints' in ann and type(ann['keypoints']) == list:
                     # turn skeleton into zero-based index
-                    sks = np.array(self.load_cats(ann['category_id'])[0]['skeleton']) - 1
+                    sks = np.array(self.get_cats_by_id(ann['category_id'])[0]['skeleton']) - 1
                     kp = np.array(ann['keypoints'])
                     x = kp[0::3]
                     y = kp[1::3]
@@ -301,7 +316,7 @@ class CocoData:
         :return: results (obj)         : result api object
         """
         results = CocoData()
-        results.dataset['images'] = [img for img in self.dataset['images']]
+        results.dataset['images'] = [image for image in self.dataset['images']]
 
         print('Loading and preparing results...     ')
         tic = time.time()
@@ -354,29 +369,6 @@ class CocoData:
         results.dataset['annotations'] = anns
         results.create_index()
         return results
-
-    def download(self, tar_dir=None, image_ids=[]):
-        """
-        Download COCO images from mscoco.org server.
-        :param str tar_dir: COCO results directory name
-        :param list[int] image_ids: images to be downloaded
-        """
-        if tar_dir is None:
-            print('Please specify target directory')
-            return -1
-        if len(image_ids) == 0:
-            images = self.images.values()
-        else:
-            images = self.load_images(image_ids)
-        N = len(images)
-        if not os.path.exists(tar_dir):
-            os.makedirs(tar_dir)
-        for i, img in enumerate(images):
-            tic = time.time()
-            fname = os.path.join(tar_dir, img['file_name'])
-            if not os.path.exists(fname):
-                urllib.urlretrieve(img['coco_url'], fname)
-            print('downloaded %d/%d images (t=%.1fs)' % (i, N, time.time() - tic))
 
     @staticmethod
     def load_numpy_annotations(data):

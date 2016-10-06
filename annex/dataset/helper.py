@@ -90,6 +90,14 @@ def find_data_files_and_labels_shallow(
     return filenames, label_texts, label_ids, label_counts
 
 
+def find_data_files_shallow(data_dir, unique_labels=[], types=('.jpg', 'jpeg'), full_file_path=False):
+    return find_data_files_and_labels_shallow(
+        data_dir, unique_labels, types,
+        full_file_path=full_file_path,
+        include_empty_labels=False,
+        add_background_label=False)[0]
+
+
 def load_labels(labels_file):
     try:
         unique_labels = [l.strip() for l in open(labels_file, 'r').readlines()]
