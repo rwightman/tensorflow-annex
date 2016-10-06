@@ -4,6 +4,18 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_string('dataset', 'mscoco',
+                           'Dataset type. One of ''mscoco'', ''imagenet''')
+
+tf.app.flags.DEFINE_string('train_directory', '',
+                           'Training data directory')
+
+tf.app.flags.DEFINE_string('validation_directory', '',
+                           'Validation data directory')
+
+tf.app.flags.DEFINE_string('test_directory', '',
+                           'Test data directory')
+
 class Dataset(object):
 
     def __init__(self, name, data_dir=''):
@@ -11,7 +23,7 @@ class Dataset(object):
         self.name = name
 
         assert path.isdir(data_dir)
-        self._data_dir = data_dir
+        self.data_dir = data_dir
 
         self._records = {}
 

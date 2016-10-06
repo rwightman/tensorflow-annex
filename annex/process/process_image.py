@@ -43,8 +43,8 @@ class ImageCoder(object):
 ###
 
 class ProcessorImage(Processor):
-    def __init__(self):
-        super(ProcessorImage, self).__init__()
+    def __init__(self, dataset, num_shards):
+        super(ProcessorImage, self).__init__(dataset, num_shards)
         self._coder = ImageCoder()
         self._check_images = False
         self._skip_example = False
@@ -64,17 +64,19 @@ class ProcessorImage(Processor):
         """
         # Read the image file.
         filename = record.filename
+        filename = os.path.join(self.dataset.data_dir, record.filename)
         image_data = tf.gfile.FastGFile(filename, 'rb').read()
 
         # Clean the dirty data.
-        if self.dataset.is_png(filename):
-            # 1 image is a PNG.
-            print('Converting PNG to JPEG for %s' % filename)
-            image_data = self.coder.png_to_jpeg(image_data)
-        if self.dataset.is_cmyk(filename):
-            # 22 JPEG images are in CMYK colorspace.
-            print('Converting CMYK to RGB for %s' % filename)
-            image_data = self.coder.cmyk_to_rgb(image_data)
+        if False:
+            if self.dataset.is_png(filename):
+                # 1 image is a PNG.
+                print('Converting PNG to JPEG for %s' % filename)
+                image_data = self.coder.png_to_jpeg(image_data)
+            if self.dataset.is_cmyk(filename):
+                # 22 JPEG images are in CMYK colorspace.
+                print('Converting CMYK to RGB for %s' % filename)
+                image_data = self.coder.cmyk_to_rgb(image_data)
 
         if self._check_images:
             # Decode the RGB JPEG and check that image converted to RGB
@@ -89,6 +91,9 @@ class ProcessorImage(Processor):
             tf.gfile.FastGFile(out_of_band_filename, 'wb').write(image_data)
         else:
             record.set_encoded(image_data)
+
+        example = record.to_example()
+        writer.write(example.SerializeToString())
 
 
 

@@ -23,6 +23,7 @@ from external import coco
 from record import Polygon2D, ClassLabel, BoundingBox
 from record.example import *
 import dataset
+from process import ProcessorImage
 from dataset import DatasetCoco
 
 class Timer:
@@ -51,17 +52,12 @@ def main(unused):
         annotation_file='/data/x/mscoco/annotations/instances_train2014.json')
 
     print("Num records: ", dc.num_records())
-    with Timer("Gen records"):
-        all_recs2 = [x for x in dc.generate_records(include_objects=True)]
-        print("Num generated: ", len(all_recs2))
+    # with Timer("Gen records"):
+    #     all_recs2 = [x for x in dc.generate_records(include_objects=True)]
+    #     print("Num generated: ", len(all_recs2))
 
-    serialized = []
-    with Timer("Convert records"):
-        for x in dc.generate_records(include_objects=True):
-            ex = x.to_example()
-            serialized.append(ex)
-
-
+    processor = ProcessorImage(dc, num_shards=256)
+    processor.process_records()
 
 if __name__ == '__main__':
     tf.app.run()
