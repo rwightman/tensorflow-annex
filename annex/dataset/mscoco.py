@@ -17,8 +17,7 @@ from .dataset import Dataset
 FLAGS = tf.app.flags.FLAGS
 
 
-tf.app.flags.DEFINE_string('annotation_file', '',
-                           'Annotation file')
+tf.app.flags.DEFINE_string('annotation_file', '', 'Annotation file')
 
 default_encode_params = {
     'shuffle': False,
@@ -52,20 +51,14 @@ class DatasetCoco(Dataset):
         #FIXME make param
         self._shuffle_records = False
         #self._shuffle_objects = False
-        self._background_class = False
+        self._background_class = True
         self._filter_cats = []
 
         #TODO
         # filter %of total dataset per category
         # scaling / color conversion params for processor
 
-        self._initalize_metadata()
-
-        # Setup processor
-        #self._processor = ProcessorImage()
-
-    def _initalize_metadata(self):
-        # Load and initialize metadata
+        # Load dataset annotations and metadata
         self._load_class_metadata()
         self._load_record_metadata()
         self._load_object_metadata()
@@ -157,6 +150,12 @@ class DatasetCoco(Dataset):
         obj.is_crowd = objd['iscrowd']
 
         return obj
+
+    def is_cmyk(self, filename):
+        return False
+
+    def is_png(self, filename):
+        return False
 
     def num_records(self):
         return len(self._records_index)

@@ -9,7 +9,7 @@ import pandas as pd
 
 from .dataset import Dataset
 from .helper import *
-from record import BoundingBox
+from record import BoundingBox, RecordImage
 
 
 def _get_item(name, root, index=0):
@@ -40,7 +40,7 @@ class DatasetImagenet(Dataset):
     def __init__(
             self,
             name='train',
-            data_dir='.',
+            data_dir='',
             labels_file='',
             labels_to_strings_file='',
             bbox_folder=''):
@@ -55,8 +55,6 @@ class DatasetImagenet(Dataset):
         self._labels_to_human = {}
         self._bbox_map = {}
 
-
-    def _initialize_metadata(self):
         # Load dataset annotations and metadata
         self._load_record_metadata()
         self._load_object_metadata()
@@ -204,3 +202,44 @@ class DatasetImagenet(Dataset):
             boxes.append((image_filename, image_label, bbox))
 
         return boxes
+
+    def _rec_dict_to_class(self, recd, include_objects=False):
+        if not isinstance(recd, dict):
+            rec_id = recd
+            recd = self._records[rec_id]
+        else:
+            rec_id = recd['id']
+
+        record = RecordImage(
+            rec_id=rec_id,
+            filename=recd['file_name'],
+            height=recd['height'],
+            width=recd['width'],
+        )
+
+        return record
+
+    def is_cmyk(self, filename):
+        match_list = ['n01739381_1309.JPEG', 'n02077923_14822.JPEG',
+                     'n02447366_23489.JPEG', 'n02492035_15739.JPEG',
+                     'n02747177_10752.JPEG', 'n03018349_4028.JPEG',
+                     'n03062245_4620.JPEG', 'n03347037_9675.JPEG',
+                     'n03467068_12171.JPEG', 'n03529860_11437.JPEG',
+                     'n03544143_17228.JPEG', 'n03633091_5218.JPEG',
+                     'n03710637_5125.JPEG', 'n03961711_5286.JPEG',
+                     'n04033995_2932.JPEG', 'n04258138_17003.JPEG',
+                     'n04264628_27969.JPEG', 'n04336792_7448.JPEG',
+                     'n04371774_5854.JPEG', 'n04596742_4225.JPEG',
+                     'n07583066_647.JPEG', 'n13037406_4650.JPEG']
+        return filename.split('/')[-1] in match_list
+
+    def is_png(self, filename):
+        return 'n02105855_2933.JPEG' in filename
+
+    def records_as_list(self, start=0, end=None, include_objects=False):
+        return list(self.generate_records(start, end, include_objects))
+
+    def generate_records(self, start=0, end=None, include_objects=False):
+        for rec_id in self._records_index[start:end]:
+            record = self._rec_dict_to_class(self._records[rec_id], include_objects)
+            yield record

@@ -15,15 +15,6 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('output_directory', '/tmp/',
                            'Output data directory')
 
-tf.app.flags.DEFINE_integer('train_shards', 1024,
-                            'Number of shards in training TFRecord files.')
-
-tf.app.flags.DEFINE_integer('validation_shards', 128,
-                            'Number of shards in validation TFRecord files.')
-
-tf.app.flags.DEFINE_integer('test_shards', 1024,
-                            'Number of shards in test TFRecord files.')
-
 tf.app.flags.DEFINE_integer('num_threads', 4,
                             'Number of threads to preprocess the images.')
 

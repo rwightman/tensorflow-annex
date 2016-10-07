@@ -18,13 +18,28 @@ import timeit
 import functools
 import numbers
 
-from process import process_image
+from process import processor_image
 from external import coco
 from record import Polygon2D, ClassLabel, BoundingBox
 from record.example import *
-import dataset
 from process import ProcessorImage
-from dataset import DatasetCoco
+from dataset import dataset_factory
+
+
+FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_string('dataset', 'mscoco',
+                           'Dataset type. One of ''mscoco'', ''imagenet''')
+
+tf.app.flags.DEFINE_string('train_dir', '',
+                           'Training data directory')
+
+tf.app.flags.DEFINE_string('validation_dir', '',
+                           'Validation data directory')
+
+tf.app.flags.DEFINE_string('test_dir', '',
+                           'Test data directory')
+
 
 class Timer:
     def __init__(self, str=""):
@@ -47,16 +62,18 @@ def main(unused):
     print(bb.is_integral())
     bbi = bb.as_integers()
 
-    dc = DatasetCoco(
+    ds = dataset_factory.create(
+        'mscoco',
+        name='test',
         data_dir='/data/x/mscoco/train2014',
         annotation_file='/data/x/mscoco/annotations/instances_train2014.json')
 
-    print("Num records: ", dc.num_records())
+    print("Num records: ", ds.num_records())
     # with Timer("Gen records"):
     #     all_recs2 = [x for x in dc.generate_records(include_objects=True)]
     #     print("Num generated: ", len(all_recs2))
 
-    processor = ProcessorImage(dc, num_shards=256)
+    processor = ProcessorImage(ds, num_shards=256)
     processor.process_records()
 
 if __name__ == '__main__':

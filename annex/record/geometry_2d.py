@@ -50,8 +50,7 @@ class BoundingBox:
         return self.w <= 0 or self.h <= 0
 
     def is_integral(self, strict=False):
-        vals = [self.xmin, self.ymin, self.width, self.height]
-        return is_iterable_integral(vals, strict)
+        return is_iterable_integral(self.as_list(), strict)
 
     def to_integers(self):
         self.xmin = math.floor(self.xmin)
@@ -87,15 +86,15 @@ class BoundingBox:
     def as_integers(self):
         return copy.copy(self).to_integers()
 
-    def as_list(self, fmt='xyxy'):
-        if fmt == 'xyxy':
-            coord_list = [self.xmin, self.ymin, self.xmin + self.width - 1, self.ymin + self.height - 1]
-        elif fmt == 'yxyx':
-            coord_list = [self.ymin, self.xmin, self.ymin + self.height - 1, self.xmin + self.width - 1]
-        elif fmt == 'xywh':
+    def as_list(self, fmt='xywh'):
+        if fmt == 'xywh':
             coord_list = [self.xmin, self.ymin, self.width, self.height]
         elif fmt == 'yxhw':
             coord_list = [self.ymin, self.xmin, self.height, self.width]
+        elif fmt == 'xyxy':
+            coord_list = [self.xmin, self.ymin, self.xmin + self.width - 1, self.ymin + self.height - 1]
+        elif fmt == 'yxyx':
+            coord_list = [self.ymin, self.xmin, self.ymin + self.height - 1, self.xmin + self.width - 1]
         else:
             assert False, 'Unknown bbox list format'
         return coord_list
@@ -127,32 +126,15 @@ class BoundingBox:
     def from_list(cls, coord_list, fmt='yxyx'):
         assert len(coord_list) == 4
         if fmt == 'xyxy':
-            assert coord_list[2] >= coord_list[0]
-            assert coord_list[3] >= coord_list[1]
-            xmin = coord_list[0]
-            ymin = coord_list[1]
-            w = coord_list[2] - xmin + 1
-            h = coord_list[3] - ymin + 1
+            return cls.from_xyxy(coord_list[0], coord_list[1], coord_list[2], coord_list[3])
         elif fmt == 'yxyx':
-            assert coord_list[3] >= coord_list[1]
-            assert coord_list[2] >= coord_list[0]
-            xmin = coord_list[1]
-            ymin = coord_list[0]
-            w = coord_list[3] - xmin + 1
-            h = coord_list[2] - ymin + 1
+            return cls.from_xyxy(coord_list[1], coord_list[0], coord_list[3], coord_list[2])
         elif fmt == 'xywh':
-            xmin = coord_list[0]
-            ymin = coord_list[1]
-            w = coord_list[2]
-            h = coord_list[3]
+            return cls(coord_list[0], coord_list[1], coord_list[2], coord_list[3])
         elif fmt == 'yxhw':
-            xmin = coord_list[1]
-            ymin = coord_list[0]
-            w = coord_list[3]
-            h = coord_list[2]
+            return cls(coord_list[1], coord_list[0], coord_list[3], coord_list[2])
         else:
             assert False, 'Unknown bbox list format'
-        return cls(xmin, ymin, w, h)
 
 
 class Polygon2D:

@@ -5,7 +5,7 @@ from __future__ import print_function
 import os
 import tensorflow as tf
 import numpy as np
-from .process import Processor
+from .processor import Processor
 
 
 class ImageCoder(object):

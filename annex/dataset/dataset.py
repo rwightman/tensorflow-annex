@@ -4,17 +4,6 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('dataset', 'mscoco',
-                           'Dataset type. One of ''mscoco'', ''imagenet''')
-
-tf.app.flags.DEFINE_string('train_directory', '',
-                           'Training data directory')
-
-tf.app.flags.DEFINE_string('validation_directory', '',
-                           'Validation data directory')
-
-tf.app.flags.DEFINE_string('test_directory', '',
-                           'Test data directory')
 
 class Dataset(object):
 
@@ -26,12 +15,4 @@ class Dataset(object):
         self.data_dir = data_dir
 
         self._records = {}
-
-        self._initialize_metadata()
-
-    @abstractmethod
-    def _initialize_metadata(self):
-        pass
-
-    def process(self):
-        self._processor.process()
+        self._records_index = []
