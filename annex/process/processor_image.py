@@ -1,6 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# Copyright (C) 2016 Ross Wightman. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+# ==============================================================================
 
 import os
 import tensorflow as tf
@@ -43,8 +48,8 @@ class ImageCoder(object):
 ###
 
 class ProcessorImage(Processor):
-    def __init__(self, dataset, num_shards):
-        super(ProcessorImage, self).__init__(dataset, num_shards)
+    def __init__(self, dataset, num_shards=256, output_dir='/tmp'):
+        super(ProcessorImage, self).__init__(dataset, num_shards, output_dir)
         self._coder = ImageCoder()
         self._check_images = False
         self._skip_example = False

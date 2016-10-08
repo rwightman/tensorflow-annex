@@ -1,6 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# Copyright (C) 2016 Ross Wightman. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+# ==============================================================================
 
 import os
 import sys
@@ -12,21 +17,19 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('output_directory', '/tmp/',
-                           'Output data directory')
-
 tf.app.flags.DEFINE_integer('num_threads', 4,
                             'Number of threads to preprocess the images.')
 
 
 class Processor(object):
-    def __init__(self, dataset, num_shards):
+    def __init__(self, dataset, num_shards=256, output_dir='/tmp'):
         self.dataset = dataset
         self._num_threads = FLAGS.num_threads
         self._num_shards = num_shards
+        self._output_dir = output_dir
 
     def _process_record(self, record, writer):
-        print("Crap")
+        assert False, "This shouldn't be called"
 
     def _process_records_batch(self, thread_index, thread_range, num_shards_batch, num_shards_total):
         """Processes and saves list of images as TFRecord in 1 thread.
@@ -45,7 +48,7 @@ class Processor(object):
             # Generate a sharded version of the file name, e.g. 'train-00002-of-00010'
             shard = thread_index * num_shards_batch + s
             output_filename = '%s-%.5d-of-%.5d' % (self.dataset.name, shard, num_shards_total)
-            output_file = os.path.join(FLAGS.output_directory, output_filename)
+            output_file = os.path.join(self._output_dir, output_filename)
             writer = tf.python_io.TFRecordWriter(output_file)
             shard_counter = 0
             for record in self.dataset.generate_records(start=shard_ranges[s], end=shard_ranges[s + 1]):

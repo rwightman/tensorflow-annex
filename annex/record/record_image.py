@@ -1,3 +1,12 @@
+# Copyright (C) 2016 Ross Wightman. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+# ==============================================================================
+
 import os
 import tensorflow as tf
 from abc import abstractmethod
@@ -41,9 +50,11 @@ class RecordImage(Record):
 
         super(RecordImage, self).__init__(rec_id=rec_id, filename=filename)
         self.image_class = image_class  # image's object class, some datasets won't have record level classes and labels
-        assert height and height > 0
-        self.height = height
+        assert (height and height > 0) or (width and width > 0)
+        self.height = height if not height else width
         self.width = height if not width else width
+        self.height_orig = None  # only set if image to be rescaled
+        self.width_orig = None  # only set if image to be rescaled
         self.chan = chan
         self.colorspace = colorspace
         self.encode_format = encode_format

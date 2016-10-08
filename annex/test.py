@@ -1,11 +1,14 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# Copyright (C) 2016 Ross Wightman. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+# ==============================================================================
 
 import os
 import sys
-import threading
-from datetime import datetime
 import tensorflow as tf
 import numpy as np
 import pandas as pd
@@ -16,29 +19,12 @@ import skimage.io as io
 import time
 import timeit
 import functools
-import numbers
 
-from process import processor_image
 from external import coco
 from record import Polygon2D, ClassLabel, BoundingBox
 from record.example import *
 from process import ProcessorImage
 from dataset import dataset_factory
-
-
-FLAGS = tf.app.flags.FLAGS
-
-tf.app.flags.DEFINE_string('dataset', 'mscoco',
-                           'Dataset type. One of ''mscoco'', ''imagenet''')
-
-tf.app.flags.DEFINE_string('train_dir', '',
-                           'Training data directory')
-
-tf.app.flags.DEFINE_string('validation_dir', '',
-                           'Validation data directory')
-
-tf.app.flags.DEFINE_string('test_dir', '',
-                           'Test data directory')
 
 
 class Timer:
@@ -57,10 +43,6 @@ class Timer:
 
 
 def main(unused):
-
-    bb = BoundingBox(1.0, 1.0, 300, 200)
-    print(bb.is_integral())
-    bbi = bb.as_integers()
 
     ds = dataset_factory.create(
         'mscoco',

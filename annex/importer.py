@@ -1,6 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# Copyright (C) 2016 Ross Wightman. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+# ==============================================================================
 
 import os
 import sys
@@ -26,20 +31,23 @@ tf.app.flags.DEFINE_string('test_dir', '',
 tf.app.flags.DEFINE_string('output_dir', '',
                            'Output directory')
 
-tf.app.flags.DEFINE_integer('train_shards', 1024,
+tf.app.flags.DEFINE_integer('train_shards', 512,
                             'Number of shards in training TFRecord files.')
 
 tf.app.flags.DEFINE_integer('validation_shards', 128,
                             'Number of shards in validation TFRecord files.')
 
-tf.app.flags.DEFINE_integer('test_shards', 1024,
+tf.app.flags.DEFINE_integer('test_shards', 512,
                             'Number of shards in test TFRecord files.')
 
-def main():
+tf.app.flags.DEFINE_string('annotation_file', '', 'Annotation file')
+
+
+def main(argv):
 
     if not FLAGS.train_dir and not FLAGS.validation_dir and not FLAGS.test_dir:
         print("Nothing to do here")
-        exit(0)
+        exit(1)
 
     dataset_type = FLAGS.dataset
     assert dataset_factory.is_valid_type(dataset_type)
@@ -50,7 +58,7 @@ def main():
             name='train',
             data_dir=FLAGS.train_dir,
             annotation_file=FLAGS.annotation_file)
-        proc = ProcessorImage(ds, FLAGS.train_shards)
+        proc = ProcessorImage(ds, num_shards=FLAGS.train_shards, output_dir=FLAGS.output_dir)
         proc.process_records()
 
     if FLAGS.validation_dir:
@@ -59,7 +67,7 @@ def main():
             name='validation',
             data_dir=FLAGS.validation_dir,
             annotation_file=FLAGS.annotation_file)
-        proc = ProcessorImage(ds, FLAGS.validation_shards)
+        proc = ProcessorImage(ds, num_shards=FLAGS.validation_shards, output_dir=FLAGS.output_dir)
         proc.process_records()
 
     if FLAGS.test_directory:
@@ -68,9 +76,8 @@ def main():
             name='test',
             data_dir=FLAGS.test_dir,
             annotation_file=FLAGS.annotation_file)
-        proc = ProcessorImage(ds, FLAGS.test_shards)
+        proc = ProcessorImage(ds, num_shards=FLAGS.test_shards, output_dir=FLAGS.output_dir)
         proc.process_records()
-
 
 
 if __name__ == '__main__':

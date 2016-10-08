@@ -1,11 +1,29 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# Copyright (C) 2016 Ross Wightman. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+# ==============================================================================
+# Based on original Work Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 
 import os
 import sys
 import xml.etree.ElementTree as ET
-import pandas as pd
 
 from .dataset import Dataset
 from .helper import *
@@ -90,16 +108,14 @@ class DatasetImagenet(Dataset):
             add_background_label=True
         )
 
-        human_texts = []
-        for label in label_texts:
-            assert label in self._labels_to_human, ('Failed to find: %s' % label)
-            human_texts.append(self._labels_to_human[label])
-
-        self._records = pd.DataFrame(
-            data=[label_ids, label_texts, human_texts],
-            index=pd.Index(filenames, name='filenames'),
-            columns=['label_id', 'label_texts', 'human_texts']
-        )
+        for filename, label_text, label_id in zip(filenames, label_texts, label_ids):
+            assert label_id in self._labels_to_human, ('Failed to find: %s' % label)
+            human_text = self._labels_to_human[label]
+            self._records[filename] = {
+                'label_id': label_id,
+                'label_text': label_text,
+                'human_text': human_text
+            }
 
     def _load_object_metadata(self):
         assert os.path.isdir(self._bbox_folder)
@@ -124,20 +140,15 @@ class DatasetImagenet(Dataset):
             for bbox in bboxes:
                 if labels:
                     if match_image_label and bbox.label != label and bbox.label in labels:
-                        # Note: There is a slight bug in the bounding box annotation data.
-                        # Many of the dog labels have the human label 'Scottish_deerhound'
-                        # instead of the synset ID 'n02092002' in the bbox.label field. To
-                        # overcome this issue, only valid sysnet ids are excluded.
+                        # Skip invalid sysnets as there are some in annotations.
                         skipped_boxes += 1
                         continue
 
-                # Guard against improperly specified boxes.
                 if (bbox.xmin_scaled >= bbox.xmax_scaled or bbox.ymin_scaled >= bbox.ymax_scaled):
                     skipped_boxes += 1
                     continue
 
-                # Note bbox.filename occasionally contains '%s' in the name. This is
-                # data set noise that is fixed by just using the basename of the XML file.
+                # bbox.filename occasionally contains '%s' in the name. Fix by using the basename of the XML file.
                 image_filename = os.path.splitext(os.path.basename(filename))[0]
                 image_filename = os.path.join(image_filename, '.jpeg')
                 self._bbox_map[image_filename] = bbox
@@ -151,16 +162,15 @@ class DatasetImagenet(Dataset):
                 skipped_files += 1
 
             if not file_index % 5000:
-                print('--> processed %d of %d XML files.' % (file_index + 1, len(xml_files)), file=sys.stderr)
-                print('--> skipped %d boxes and %d XML files.' % (skipped_boxes, skipped_files), file=sys.stderr)
+                print('... processed %d of %d XML files.' % (file_index + 1, len(xml_files)), file=sys.stderr)
+                print('... skipped %d boxes and %d XML files.' % (skipped_boxes, skipped_files), file=sys.stderr)
 
         print('Finished processing %d XML files.' % len(xml_files), file=sys.stderr)
-        print('Skipped %d XML files not in ImageNet Challenge.' % skipped_files, file=sys.stderr)
-        print('Skipped %d bounding boxes not in ImageNet Challenge.' % skipped_boxes, file=sys.stderr)
+        print('Skipped %d XML files.' % skipped_files, file=sys.stderr)
+        print('Skipped %d bounding boxes.' % skipped_boxes, file=sys.stderr)
         print('Created %d bounding boxes from %d annotated images.' % (saved_boxes, saved_files), file=sys.stderr)
 
     def _process_xml_annotation(self, xml_file):
-        """Process a single XML file containing a bounding box."""
         # pylint: disable=broad-except
         try:
             tree = ET.parse(xml_file)
@@ -220,17 +230,18 @@ class DatasetImagenet(Dataset):
         return record
 
     def is_cmyk(self, filename):
-        match_list = ['n01739381_1309.JPEG', 'n02077923_14822.JPEG',
-                     'n02447366_23489.JPEG', 'n02492035_15739.JPEG',
-                     'n02747177_10752.JPEG', 'n03018349_4028.JPEG',
-                     'n03062245_4620.JPEG', 'n03347037_9675.JPEG',
-                     'n03467068_12171.JPEG', 'n03529860_11437.JPEG',
-                     'n03544143_17228.JPEG', 'n03633091_5218.JPEG',
-                     'n03710637_5125.JPEG', 'n03961711_5286.JPEG',
-                     'n04033995_2932.JPEG', 'n04258138_17003.JPEG',
-                     'n04264628_27969.JPEG', 'n04336792_7448.JPEG',
-                     'n04371774_5854.JPEG', 'n04596742_4225.JPEG',
-                     'n07583066_647.JPEG', 'n13037406_4650.JPEG']
+        match_list = [
+            'n01739381_1309.JPEG', 'n02077923_14822.JPEG',
+            'n02447366_23489.JPEG', 'n02492035_15739.JPEG',
+            'n02747177_10752.JPEG', 'n03018349_4028.JPEG',
+            'n03062245_4620.JPEG', 'n03347037_9675.JPEG',
+            'n03467068_12171.JPEG', 'n03529860_11437.JPEG',
+            'n03544143_17228.JPEG', 'n03633091_5218.JPEG',
+            'n03710637_5125.JPEG', 'n03961711_5286.JPEG',
+            'n04033995_2932.JPEG', 'n04258138_17003.JPEG',
+            'n04264628_27969.JPEG', 'n04336792_7448.JPEG',
+            'n04371774_5854.JPEG', 'n04596742_4225.JPEG',
+            'n07583066_647.JPEG', 'n13037406_4650.JPEG']
         return filename.split('/')[-1] in match_list
 
     def is_png(self, filename):
